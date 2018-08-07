@@ -143,6 +143,8 @@ int main()
     struct sockaddr client_addr;                // Hold the data IP address of client.
     unsigned int size_client_address = sizeof(client_addr);     // Length of client's data address.
 
+    memset(&client_addr, 0, size_client_address);
+
     if ((socket_for_client = accept(server_fd, &client_addr, &size_client_address))<0)
     {
         perror("=> Accept error");
@@ -169,7 +171,7 @@ int main()
      *            int flag)                     // Should be 0 to get normal data.
      */
 
-    bool isExit = false;
+    string inputStr;
     const unsigned int bufsize = 1024;          // Define buffer to get in and out data from socket.
     char buffer[bufsize];
 
@@ -181,54 +183,29 @@ int main()
         printf("=> Connection successful \n");
         printf("=> Enter # to end the connection \n");  // Start communication ......
 
-        printf("\nClient: ");
-        do
-        {
+        while(1){
+
+            printf("Client: ");                         // Wait until get data from client
             recv(socket_for_client, buffer, bufsize, 0);
-            cout << buffer << " ";
-            if (*buffer == '#')
-            {
-                *buffer = '*';
-                isExit = true;
-            }
-        }
-        while (*buffer != '*');
+            cout << buffer << endl;
 
-        do
-        {
-            printf("\nServer: ");
-            do
-            {
-                cin >> buffer;
-                send(socket_for_client, buffer, bufsize, 0);
-                if (*buffer == '#')
-                {
-                    send(socket_for_client, buffer, bufsize, 0);
-                    *buffer = '*';
-                    isExit = true;
-                }
-            }
-            while (*buffer != '*');
+            if (*buffer == '#') {
+                break;
+            };
 
-            printf("Client: ");
-            do
-            {
-                recv(socket_for_client, buffer, bufsize, 0);
-                cout << buffer << " ";
-                if (*buffer == '#')
-                {
-                    *buffer = '*';
-                    isExit = true;
-                }
-            }
-            while (*buffer != '*');
-        }
-        while (!isExit);
+            printf("Server: ");                         //Send data from client
+            getline(cin,inputStr);
+            strcpy(buffer,inputStr.c_str());
+            send(socket_for_client, buffer, bufsize, 0);
 
-        printf("\n\n=> Connection terminated with client");
+            if (*buffer == '#') {
+                break;
+            };
+        };
+
+        printf("\n=> Connection terminated with client");
         close(socket_for_client);
         printf("\nGoodbye... \n");
-        isExit = false;
         exit(1);
     }
 
