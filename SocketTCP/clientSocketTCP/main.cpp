@@ -106,39 +106,31 @@ int main()
 
     const int bufsize = 1024;
     char buffer[bufsize];
-    bool isExit = false;
+    string inputStr;
 
     cout << "=> Awaiting confirmation from the server..." << endl;  // Too sure that connection is establish
     recv(client_fd, buffer, bufsize, 0);                            // client will wait until get a first message from server.
     cout << "=> Connection confirmed, you are good to go...";
     cout << "\n=> Enter # to end the connection\n" << endl;
 
-    do {                                        // Starting communication ....
-        cout << "Client: ";
-        do {
-            cin >> buffer;
-            send(client_fd, buffer, bufsize, 0);
-            if (*buffer == '#') {
-                send(client_fd, buffer, bufsize, 0);
-                *buffer = '*';
-                isExit = true;
-            }
-        } while (*buffer != 42);
+    while (1) {                                        // Starting communication ....
+        cout << "Client: ";                            // Say to server
+        getline(cin,inputStr);
+        strcpy(buffer,inputStr.c_str());
+        send(client_fd, buffer, bufsize, 0);
 
-        cout << "Server: ";
-        do {
-            recv(client_fd, buffer, bufsize, 0);
-            cout << buffer << " ";
-            if (*buffer == '#') {
-                *buffer = '*';
-                isExit = true;
-            }
+        if (*buffer == '#') {
+            break;
+        };
 
-        } while (*buffer != 42);
-        cout << endl;
+        cout << "Server: ";                            // Wait until get data from server
+        recv(client_fd, buffer, bufsize, 0);
+        cout << buffer << endl;
 
-    } while (!isExit);
-
+        if (*buffer == '#') {
+            break;
+        };
+    };
 
     /*------------------------------------------------------------------------------------------------------------*/
     /*----- Close the server socket and exit the program -----*/
