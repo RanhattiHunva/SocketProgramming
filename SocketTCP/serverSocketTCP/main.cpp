@@ -10,8 +10,59 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <thread>
 
 using namespace std;
+
+void sendTCP(bool& finishFlag, int& socket_fd){
+
+    string inputStr;
+    const int bufsize = 1024;
+    char buffer[bufsize];
+
+    while(!finishFlag){
+        getline(cin,inputStr);
+        strcpy(buffer,inputStr.c_str());
+        send(socket_fd, buffer, bufsize, 0);
+
+        if (*buffer == '#')
+        {
+            break;
+        };
+    };
+    finishFlag = true;
+};
+
+void reciveTCP(bool& finishFlag, int& socket_fd){
+
+    const int bufsize = 1024;
+    char buffer[bufsize];
+
+    while(!finishFlag){                                                // Wait until get data from server
+        recv(socket_fd, buffer, bufsize, 0);
+        cout << "Get from client: ";
+        cout << buffer << endl;
+
+        if (*buffer == '#')
+        {
+            break;
+        };
+    };
+    finishFlag = true;
+};
+
+class scoped_thread
+{
+    std::thread t;
+public:
+    explicit scoped_thread(std::thread t_):t(std::move(t_)){}
+    ~scoped_thread(){
+        t.join();
+    }
+    scoped_thread(scoped_thread const&)=delete;
+    scoped_thread& operator = (scoped_thread const&) = delete;
+};
+
 int main()
 {
     /* Notice the program information */
@@ -81,13 +132,6 @@ int main()
     {
         printf("=> Created the server's socket decriptor!!\n");
     };
-
-    /*  Manipulate some option of the socket to reuse address or port. */
-//    int opt=1;
-//    if ((setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) == -1 ){
-//        perror("Setsockopt failed");
-//        exit(EXIT_FAILURE);
-//    }
 
 
     /*------------------------------------------------------------------------------------------------------------*/
@@ -181,33 +225,21 @@ int main()
         send(socket_for_client, buffer, bufsize, 0);    // the connection has been establish
 
         printf("=> Connection successful \n");
-        printf("=> Enter # to end the connection \n");  // Start communication ......
+        printf("=> Enter # to end the connection \n \n");  // Start communication ......
 
-        while(1){
+        bool flageFinish;
+        flageFinish = false;
 
-            printf("Client: ");                         // Wait until get data from client
-            recv(socket_for_client, buffer, bufsize, 0);
-            cout << buffer << endl;
+        scoped_thread sendThread(std::thread(sendTCP,std::ref(flageFinish),std::ref(socket_for_client)));
+        scoped_thread recThread(std::thread(reciveTCP,std::ref(flageFinish), std::ref(socket_for_client)));
 
-            if (*buffer == '#') {
-                break;
-            };
-
-            printf("Server: ");                         //Send data from client
-            getline(cin,inputStr);
-            strcpy(buffer,inputStr.c_str());
-            send(socket_for_client, buffer, bufsize, 0);
-
-            if (*buffer == '#') {
-                break;
-            };
-        };
+        while(!flageFinish){};
 
         printf("\n=> Connection terminated with client");
         close(socket_for_client);
         printf("\nGoodbye... \n");
         exit(1);
-    }
+    };
 
 
     /*------------------------------------------------------------------------------------------------------------*/
