@@ -10,8 +10,59 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <thread>
 
 using namespace std;
+
+void sendTCP(bool& finishFlag, int& socket_fd){
+
+    string inputStr;
+    const int bufsize = 1024;
+    char buffer[bufsize];
+
+    while(!finishFlag){
+        getline(cin,inputStr);
+        strcpy(buffer,inputStr.c_str());
+        send(socket_fd, buffer, bufsize, 0);
+
+        if (*buffer == '#')
+        {
+            break;
+        };
+    };
+    finishFlag = true;
+};
+
+void reciveTCP(bool& finishFlag, int& socket_fd){
+
+    const int bufsize = 1024;
+    char buffer[bufsize];
+
+    while(!finishFlag){
+        recv(socket_fd, buffer, bufsize, 0);
+        cout << "Get from server: ";         // Wait until get data from server
+        cout << buffer << endl;
+
+        if (*buffer == '#')
+        {
+            break;
+        };
+    };
+    finishFlag = true;
+};
+
+class scoped_thread
+{
+    std::thread t;
+public:
+    explicit scoped_thread(std::thread t_):t(std::move(t_)){}
+    ~scoped_thread(){
+        t.join();
+    }
+    scoped_thread(scoped_thread const&)=delete;
+    scoped_thread& operator = (scoped_thread const&) = delete;
+};
+
 int main()
 {
     /* Notice the program information */
@@ -28,7 +79,7 @@ int main()
      *                   struct addrinfo **res)          // Pointer to save linked-list.
      */
     struct addrinfo *clientinfor, *p;   // servinfor is linked-list which contain all address information.
-                                        // p is used to query data.
+    // p is used to query data.
 
     struct addrinfo hints;              // Clue to find the address information.
     memset(&hints, 0, sizeof(hints));   // To sure that hint is empty.
@@ -105,32 +156,18 @@ int main()
      */
 
     const int bufsize = 1024;
-    char buffer[bufsize];
-    string inputStr;
-
+    char bufferConfirm[bufsize];
     cout << "=> Awaiting confirmation from the server..." << endl;  // Too sure that connection is establish
-    recv(client_fd, buffer, bufsize, 0);                            // client will wait until get a first message from server.
+    recv(client_fd, bufferConfirm, bufsize, 0);                     // client will wait until get a first message from server.
     cout << "=> Connection confirmed, you are good to go...";
     cout << "\n=> Enter # to end the connection\n" << endl;
 
-    while (1) {                                        // Starting communication ....
-        cout << "Client: ";                            // Say to server
-        getline(cin,inputStr);
-        strcpy(buffer,inputStr.c_str());
-        send(client_fd, buffer, bufsize, 0);
+    bool flageFinish;
+    flageFinish = false;
+    scoped_thread sendThread(std::thread(sendTCP,std::ref(flageFinish),std::ref(client_fd)));
+    scoped_thread recThread(std::thread(reciveTCP,std::ref(flageFinish), std::ref(client_fd)));
 
-        if (*buffer == '#') {
-            break;
-        };
-
-        cout << "Server: ";                            // Wait until get data from server
-        recv(client_fd, buffer, bufsize, 0);
-        cout << buffer << endl;
-
-        if (*buffer == '#') {
-            break;
-        };
-    };
+    while(!flageFinish){};
 
     /*------------------------------------------------------------------------------------------------------------*/
     /*----- Close the server socket and exit the program -----*/
