@@ -268,7 +268,7 @@ int main()
         scoped_thread sendThread(std::thread(sendTCP,std::ref(flageFinish),std::ref(socket_for_client)));
         scoped_thread recThread(std::thread(reciveTCP,std::ref(flageFinish), std::ref(socket_for_client)));
 
-        while(!flageFinish) {sleep(5);};
+        while(!flageFinish) {sleep(1);};
 
         printf("\n=> Socket for client's connection is closed.");
         close(socket_for_client);
