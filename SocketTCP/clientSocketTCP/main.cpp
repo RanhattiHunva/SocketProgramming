@@ -11,14 +11,21 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <thread>
+#include <mutex>
 
 using namespace std;
+static std::mutex logMutex;
 
-void getLog(std::string& inputStr)
+void getLog(std::string& outStr)
 {
+    string inputStr;
     while(1)
     {
         getline(cin, inputStr);
+        logMutex.lock();
+        outStr = inputStr;
+        logMutex.unlock();
+
         if(!inputStr.compare("#"))
         {
             break;
