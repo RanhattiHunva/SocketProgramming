@@ -14,53 +14,108 @@
 
 using namespace std;
 
-void sendTCP(bool& finishFlag, int& socket_fd){
-
-    string inputStr;
-    const int bufsize = 1024;
-    char buffer[bufsize];
-
-    while(!finishFlag){
-        getline(cin,inputStr);
-        strcpy(buffer,inputStr.c_str());
-        send(socket_fd, buffer, bufsize, 0);
-
-        if (*buffer == '#')
+void getLog(std::string& inputStr)
+{
+    while(1)
+    {
+        getline(cin, inputStr);
+        if(!inputStr.compare("#"))
         {
             break;
         };
     };
-    finishFlag = true;
-};
-
-void reciveTCP(bool& finishFlag, int& socket_fd){
-
-    const int bufsize = 1024;
-    char buffer[bufsize];
-
-    while(!finishFlag){
-        recv(socket_fd, buffer, bufsize, 0);
-        cout << "Get from server: ";         // Wait until get data from server
-        cout << buffer << endl;
-
-        if (*buffer == '#')
-        {
-            break;
-        };
-    };
-    finishFlag = true;
-};
+}
 
 class scoped_thread
 {
     std::thread t;
 public:
-    explicit scoped_thread(std::thread t_):t(std::move(t_)){}
-    ~scoped_thread(){
+    explicit scoped_thread(std::thread t_):t(std::move(t_)) {}
+    ~scoped_thread()
+    {
         t.join();
     }
     scoped_thread(scoped_thread const&)=delete;
     scoped_thread& operator = (scoped_thread const&) = delete;
+};
+
+void sendTCP(bool& finishFlag, int& socket_fd)
+{
+    string inputStr;
+    inputStr.clear();
+
+    const unsigned int bufsize = 1024;
+    char buffer[bufsize];
+
+    long validElements, byteLeft, status, totalBytes;
+
+    scoped_thread gertLogThread(std::thread(getLog,std::ref(inputStr)));
+
+    while(!finishFlag)
+    {
+        if(!inputStr.empty())
+        {
+
+            memset(&buffer,0,1024);
+            strcpy(buffer,inputStr.c_str());
+
+            if(*buffer == '#')
+            {
+                break;
+            }
+            else
+            {
+                validElements = 0;
+                while(buffer[validElements] != 0)
+                {
+                    validElements+=1;
+                };
+
+                byteLeft = validElements;
+
+                totalBytes = 0;
+
+                while(totalBytes < validElements)
+                {
+                    status = send(socket_fd, buffer+totalBytes, byteLeft, 0);
+                    if (status == -1)
+                    {
+                        cout << "Sending failure !!!";
+                        throw "Error sending";
+                    }
+                    else
+                    {
+                        totalBytes += status;
+                        byteLeft -= status;
+                    };
+                };
+            };
+            inputStr.clear();
+        };
+    };
+    finishFlag = true;
+};
+
+void reciveTCP(bool& finishFlag, int& socket_fd)
+{
+    const int bufsize = 1024;
+    char buffer[bufsize];
+    long incommingByte;
+
+    while(!finishFlag)
+    {
+        memset(&buffer,0,1024);
+        incommingByte = recv(socket_fd, buffer, bufsize, 0);
+
+        if ((*buffer == '#')|(incommingByte <= 0))
+        {
+            break;
+        };
+
+        cout << "Get from server: ";         // Wait until get data from server
+        cout << buffer << endl;
+    };
+    finishFlag = true;
 };
 
 int main()
@@ -167,7 +222,7 @@ int main()
     scoped_thread sendThread(std::thread(sendTCP,std::ref(flageFinish),std::ref(client_fd)));
     scoped_thread recThread(std::thread(reciveTCP,std::ref(flageFinish), std::ref(client_fd)));
 
-    while(!flageFinish){};
+    while(!flageFinish) {};
 
     /*------------------------------------------------------------------------------------------------------------*/
     /*----- Close the server socket and exit the program -----*/
