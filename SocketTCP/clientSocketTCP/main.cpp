@@ -208,7 +208,7 @@ int main()
     scoped_thread sendThread(std::thread(sendTCP,std::ref(flageFinish),std::ref(client_fd)));
     scoped_thread recThread(std::thread(reciveTCP,std::ref(flageFinish), std::ref(client_fd)));
 
-    while(!flageFinish) {sleep(5);};
+    while(!flageFinish) {sleep(1);};
 
     /*------------------------------------------------------------------------------------------------------------*/
     /*----- Close the server socket and exit the program -----*/
