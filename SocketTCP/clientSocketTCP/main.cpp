@@ -16,23 +16,6 @@
 using namespace std;
 static std::mutex logMutex;
 
-void getLog(std::string& outStr)
-{
-    string inputStr;
-    while(1)
-    {
-        getline(cin, inputStr);
-        logMutex.lock();
-        outStr = inputStr;
-        logMutex.unlock();
-
-        if(!inputStr.compare("#"))
-        {
-            break;
-        };
-    };
-}
-
 class scoped_thread
 {
     std::thread t;
@@ -54,38 +37,30 @@ void sendTCP(bool& finishFlag, int& socket_fd)
     const unsigned int bufsize = 1024;
     char buffer[bufsize];
 
-    long validElements, byteLeft, status, totalBytes;
-
-    scoped_thread gertLogThread(std::thread(getLog,std::ref(inputStr)));
+    unsigned long validElements, byteLeft, status, totalBytes;
 
     while(!finishFlag)
     {
+        getline(cin, inputStr);
         if(!inputStr.empty())
         {
-
-            memset(&buffer,0,1024);
-            strcpy(buffer,inputStr.c_str());
-
-            if(*buffer == '#')
+            if(!inputStr.compare("#"))
             {
                 break;
             }
             else
             {
-                validElements = 0;
-                while(buffer[validElements] != 0)
-                {
-                    validElements+=1;
-                };
+                memset(&buffer,0,bufsize);
+                strcpy(buffer,inputStr.c_str());
+                validElements = inputStr.length();
 
                 byteLeft = validElements;
-
                 totalBytes = 0;
 
                 while(totalBytes < validElements)
                 {
                     status = send(socket_fd, buffer+totalBytes, byteLeft, 0);
-                    if (status == -1)
+                    if (status == -1UL)
                     {
                         cout << "Sending failure !!!";
                         throw "Error sending";
@@ -101,26 +76,30 @@ void sendTCP(bool& finishFlag, int& socket_fd)
         };
     };
     finishFlag = true;
+//    printf("\nClosing socket....");
 };
 
 void reciveTCP(bool& finishFlag, int& socket_fd)
 {
-    const int bufsize = 1024;
+    const unsigned int bufsize = 1024;
     char buffer[bufsize];
     long incommingByte;
 
     while(!finishFlag)
     {
-        memset(&buffer,0,1024);
+        memset(&buffer,0,bufsize);
         incommingByte = recv(socket_fd, buffer, bufsize, 0);
 
-        if ((*buffer == '#')|(incommingByte <= 0))
+        if ((*buffer == '#')||(incommingByte <=0))
         {
+//            printf("\nThe connection is close. Enter # to continue");
             break;
+        }
+        else
+        {
+            cout << "Get from server: ";
+            cout << buffer << endl;
         };
-
-        cout << "Get from server: ";         // Wait until get data from server
-        cout << buffer << endl;
     };
     finishFlag = true;
 };
@@ -197,10 +176,15 @@ int main()
     server_addr.sin_family = AF_INET;       // so server_addr is very simple. But with IP of a website we need to get it through
     server_addr.sin_port = htons(portNum);  // getaddrinfo().
 
-    if (connect(client_fd,(struct sockaddr *)&server_addr, sizeof(server_addr)) == 0) // old-style cast????
-        cout << "=> Connection to the server port number: " << portNum << endl;
-
-
+    if (connect(client_fd,(struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    {
+        perror("=> Connect failed");
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        printf("=> Connection to the server port number: %d",portNum);
+    };
     /*------------------------------------------------------------------------------------------------------------*/
     /*  Stating communication with client.
      *
@@ -216,16 +200,11 @@ int main()
      *            int bufflen,                  // Length array buffer.
      *            int flag)                     // Should be 0 to get normal data.
      */
-
-    const int bufsize = 1024;
-    char bufferConfirm[bufsize];
-    cout << "=> Awaiting confirmation from the server..." << endl;  // Too sure that connection is establish
-    recv(client_fd, bufferConfirm, bufsize, 0);                     // client will wait until get a first message from server.
-    cout << "=> Connection confirmed, you are good to go...";
-    cout << "\n=> Enter # to end the connection\n" << endl;
+    printf("\n=> Enter # to end the connection \n\n");
 
     bool flageFinish;
     flageFinish = false;
+
     scoped_thread sendThread(std::thread(sendTCP,std::ref(flageFinish),std::ref(client_fd)));
     scoped_thread recThread(std::thread(reciveTCP,std::ref(flageFinish), std::ref(client_fd)));
 
@@ -233,7 +212,7 @@ int main()
 
     /*------------------------------------------------------------------------------------------------------------*/
     /*----- Close the server socket and exit the program -----*/
-    cout << "\n=> Connection terminated.\nGoodbye...\n";
+    printf("\n=> Socket is closed.\n=> Goodbye...\n");
     freeaddrinfo(clientinfor);
     close(client_fd);
     return 0;
