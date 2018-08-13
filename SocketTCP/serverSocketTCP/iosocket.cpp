@@ -81,6 +81,7 @@ void sendTCP(user_command& userCommand, client_list& client_socket_list, fd_set&
 
                             byteLeft = validElements;
                             totalBytes = 0;
+                            int try = 0;
 
                             while(totalBytes < validElements)
                             {
@@ -105,6 +106,10 @@ void sendTCP(user_command& userCommand, client_list& client_socket_list, fd_set&
                                 }else{
                                     printf("Socket is not ready to send data!!");
                                     std::this_thread::sleep_for(chrono::milliseconds(100));
+                                    if (try ++ < 10){
+                                        printf("Error on sending message");
+                                        break;
+                                    }
                                 };
                             };
                         };
