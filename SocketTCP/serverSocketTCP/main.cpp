@@ -19,6 +19,9 @@
 #include "iosocket.h"
 #include "usercommand.h"
 
+std::mutex user_command_muxtex;
+std::condition_variable cond;
+
 using namespace std;
 
 class  scoped_thread        // Protecting thread. Sure that the threads are finsh for for the process is terminal.
@@ -165,7 +168,11 @@ int main()
                 {
                     string inputStr;
                     getline(cin, inputStr);
+                    
+                    std::unique_lock<mutex> locker(user_command_muxtex);
                     userCommand.set(inputStr);
+                    locker.unlock();
+                    cond.notify_one();
 
                 }
                 else if( i == server_fd)     // get new connection from new client.
