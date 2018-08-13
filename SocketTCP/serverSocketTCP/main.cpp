@@ -114,17 +114,21 @@ int main()
     unsigned int size_client_address = sizeof(client_addr);
     char IPclient[INET6_ADDRSTRLEN];
     client_list client_socket_list;     // search client_list's properties in client.h
+    std::vector <int> client_file_dercriptors;
 
     const unsigned int bufsize = 1024;
     char buffer[bufsize];
 
     fd_set master;
     fd_set read_fds;
+    client_file_dercriptors.clear();
 
     const int stdin = 0;        // stdin = 0 ifs the file decriptors of in/output terminal.
 
     FD_ZERO(&master);
     FD_ZERO(&read_fds);
+    client_file_dercriptors.push_back(stdin);
+    client_file_dercriptors.push_back(server_fd);
 
     FD_SET(server_fd, &master);
     FD_SET(stdin,&master);
@@ -159,23 +163,24 @@ int main()
             perror("select");
             exit(EXIT_FAILURE);
         }
+        unsigned long number_file_decriptors = client_file_dercriptors.size();
 
-        for (int i = 0; i<= fdmax; i++)
+        for (unsigned long i = 0; i< number_file_decriptors; i++)
         {
-            if(FD_ISSET(i, &read_fds))
+            if(FD_ISSET(client_file_dercriptors[i], &read_fds))
             {
-                if( i == stdin)               // get user input from terminal.
+                if( client_file_dercriptors[i] == stdin)               // get user input from terminal.
                 {
                     string inputStr;
                     getline(cin, inputStr);
-                    
+
                     std::unique_lock<mutex> locker(user_command_muxtex);
                     userCommand.set(inputStr);
                     locker.unlock();
                     cond.notify_one();
 
                 }
-                else if( i == server_fd)     // get new connection from new client.
+                else if( client_file_dercriptors[i] == server_fd)     // get new connection from new client.
                 {
                     if((socket_for_client = accept(server_fd, &client_addr, &size_client_address))<0)
                     {
@@ -184,6 +189,8 @@ int main()
                     else
                     {
                         FD_SET(socket_for_client, &master);
+                        client_file_dercriptors.push_back(socket_for_client);
+
                         if (socket_for_client > fdmax)
                         {
                             fdmax = socket_for_client;
@@ -200,7 +207,7 @@ int main()
                 else                        // get data from an client.
                 {
                     memset(&buffer,0,bufsize);
-                    if ((status=recv(i,buffer, bufsize,0)) <=0 )
+                    if ((status=recv(client_file_dercriptors[i],buffer, bufsize,0)) <=0 )
                     {
                         if (status == 0)
                         {
@@ -210,17 +217,19 @@ int main()
                         {
                             perror("=> Recv error!!\n");
                         };
-                        FD_CLR(i, &master);
-                        client_socket_list.removeElement(i);    // delete client information.
-                        close(i);
+                        FD_CLR(client_file_dercriptors[i], &master);
+                        client_socket_list.removeElement(client_file_dercriptors[i]);    // delete client information.
+                        client_file_dercriptors.erase(client_file_dercriptors.begin()+static_cast<long>(i));
+
+                        close(client_file_dercriptors[i]);
                     }
                     else
                     {
-                        cout << "Messaga from client, socket " << i << ":" << buffer << endl;
-                    }
-                }
-            }
-        }
+                        cout << "Messaga from client, socket " << client_file_dercriptors[i] << ":" << buffer << endl;
+                    };
+                };
+            };
+        };
     };
     /*------------------------------------------------------------------------------------------------------------*/
     close(server_fd);
