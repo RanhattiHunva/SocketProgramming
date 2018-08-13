@@ -104,6 +104,7 @@ void sendTCP(user_command& userCommand, client_list& client_socket_list, fd_set&
                                     };
                                 }else{
                                     printf("Socket is not ready to send data!!");
+                                    std::this_thread::sleep_for(chrono::milliseconds(100));
                                 };
                             };
                         };
@@ -116,7 +117,7 @@ void sendTCP(user_command& userCommand, client_list& client_socket_list, fd_set&
             };
             userCommand.clear();
         }else{
-            sleep(1);
+            std::this_thread::sleep_for(chrono::seconds(1));
         };
     };
 };
