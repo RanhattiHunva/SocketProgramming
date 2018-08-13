@@ -21,8 +21,8 @@
 #include "clientmanager.h"
 #include "usercommand.h"
 
-static std::mutex user_command_muxtex;
-static std::condition_variable cond;
+extern std::mutex user_command_muxtex;
+extern std::condition_variable cond;
 
 void splitString(const std::string& subject, std::vector<std::string>& container);
 
