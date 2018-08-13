@@ -233,8 +233,8 @@ int main()
                         }else{
                             FD_CLR(client_file_dercriptors[i], &master);
                             client_socket_list.remove(client_file_dercriptors[i]);    // delete client information.
-                            client_file_dercriptors.erase(client_file_dercriptors.begin()+static_cast<long>(i));
                             close(client_file_dercriptors[i]);
+                            client_file_dercriptors.erase(client_file_dercriptors.begin()+static_cast<long>(i));                            
                         }
                     }
                     else
