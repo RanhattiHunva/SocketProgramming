@@ -211,17 +211,20 @@ int main()
                     {
                         if (status == 0)
                         {
-                            printf("=>Connect client has been close, soket: %d\n",i);
+                            printf("=>Connect client has been close, soket: %d\n",client_file_dercriptors[i]);
                         }
                         else
                         {
                             perror("=> Recv error!!\n");
                         };
-                        FD_CLR(client_file_dercriptors[i], &master);
-                        client_socket_list.removeElement(client_file_dercriptors[i]);    // delete client information.
-                        client_file_dercriptors.erase(client_file_dercriptors.begin()+static_cast<long>(i));
-
-                        close(client_file_dercriptors[i]);
+                        if ((errno == EAGAIN)|| (errno == EWOULDBLOCK)){
+                            printf("Error on receving message");
+                        }else{
+                            FD_CLR(client_file_dercriptors[i], &master);
+                            client_socket_list.removeElement(client_file_dercriptors[i]);    // delete client information.
+                            client_file_dercriptors.erase(client_file_dercriptors.begin()+static_cast<long>(i));
+                            close(client_file_dercriptors[i]);
+                        }
                     }
                     else
                     {
