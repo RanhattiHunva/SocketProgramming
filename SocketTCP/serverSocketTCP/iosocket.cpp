@@ -41,10 +41,13 @@ void sendTCP(user_command& userCommand, client_list& client_socket_list, fd_set&
     while(1)
     {
         send_fds = master;
+        std::unique_lock<std::mutex> locker(user_command_muxtex);
+        cond.wait(locker);
         if (!userCommand.empty())
         {
             splitString(userCommand.get(), container);
-
+            locker.unlock();
+            
             if (!container[0].compare("#"))
             {
                 break;
