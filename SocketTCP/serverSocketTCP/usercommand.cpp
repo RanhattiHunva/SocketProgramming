@@ -11,13 +11,16 @@ void user_command::clear(){
 }
 
 bool user_command:: empty(){
+    std::lock_guard<std::mutex> guard(userInputMutex);
     return userCommand.empty();
 }
 
 std::string user_command::get(){
+    std::lock_guard<std::mutex> guard(userInputMutex);
     return userCommand;
 }
 
 bool user_command::compare(std::string str){
+    std::lock_guard<std::mutex> guard(userInputMutex);
     return !userCommand.compare(str);
 }
