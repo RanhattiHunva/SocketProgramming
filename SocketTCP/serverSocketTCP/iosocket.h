@@ -22,10 +22,12 @@
 #include "usercommand.h"
 
 extern std::mutex user_command_muxtex;
+extern std::mutex fd_set_muxtex;
 extern std::condition_variable cond;
 
 void splits_string(const std::string& subject, std::vector<std::string>& container);
 
-void send_TCP(user_command& user_command, client_list& client_socket_list,fd_set& master, int& fdmax);
+void send_TCP(user_command& user_command, client_list& client_socket_list, fd_set& master, int& fdmax, std::vector<int>& input_fds);
 
+void process_on_buffer_recv(const char* buffer, client_list& client_socket_list, int input_fd, user_command& user_command);
 #endif // THREADFUNCTION_H

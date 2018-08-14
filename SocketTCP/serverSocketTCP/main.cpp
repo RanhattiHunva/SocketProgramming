@@ -21,6 +21,7 @@
 
 using namespace std;
 std::mutex user_command_muxtex;
+std::mutex fd_set_muxtex;
 std::condition_variable cond;
 
 class  scoped_thread        // Protecting thread. Sure that the threads are finsh for for the process is terminal.
@@ -29,7 +30,8 @@ class  scoped_thread        // Protecting thread. Sure that the threads are fins
 public:
     explicit scoped_thread(std::thread t_):t(std::move(t_))
     {
-        if (!t.joinable()){
+        if (!t.joinable())
+        {
             throw std::logic_error("No thread");
         }
     }
@@ -41,7 +43,6 @@ public:
     scoped_thread(scoped_thread const&)=delete;
     scoped_thread& operator = (scoped_thread const&) = delete;
 };
-
 
 int main()
 {
@@ -123,7 +124,7 @@ int main()
     unsigned int size_client_address = sizeof(client_addr);
     char IPclient[INET6_ADDRSTRLEN];
     client_list client_socket_list;     // Search client_list's properties in client.h
-    std::vector <int> client_file_dercriptors;
+    std::vector <int> input_fds;
 
     const unsigned int bufsize = 1024;
     char buffer[bufsize];
@@ -135,51 +136,48 @@ int main()
 
     FD_ZERO(&master);
     FD_ZERO(&read_fds);
-    client_file_dercriptors.clear();
+    input_fds.clear();
 
     FD_SET(server_fd, &master);
     FD_SET(stdin,&master);
-    client_file_dercriptors.push_back(stdin);
-    client_file_dercriptors.push_back(server_fd);
+    input_fds.push_back(stdin);
+    input_fds.push_back(server_fd);
 
     struct timeval tv;          // waiting time for select()
     tv.tv_sec = 1;
     tv.tv_usec = 0;
 
-    int fdmax;
-    if (server_fd > stdin)
-    {
-        fdmax = server_fd;
-    }
-    else
-    {
-        fdmax = stdin;
-    }
+    int fdmax = (server_fd > stdin) ? server_fd : stdin;
 
-    fcntl(server_fd, F_SETFL, O_NONBLOCK);     // set socket to be un-locking state.
+    // Set non-blocking
+    long arg = fcntl(server_fd, F_GETFL, NULL);
+    arg |= O_NONBLOCK;
+    fcntl(server_fd, F_SETFL, arg);
 
     user_command user_command;   // object to project race-conditon on user input from terminal.
     user_command.clear();        // search properties on usercomnand.h
 
-    scoped_thread sendThread(std::thread(send_TCP,std::ref(user_command), std::ref(client_socket_list), std::ref(master), std::ref(fdmax)));
-    // for more about sendTCP() please search on iosoket.h
+    scoped_thread sendThread(std::thread(send_TCP,std::ref(user_command), std::ref(client_socket_list), std::ref(master), std::ref(fdmax), std::ref(input_fds)));
 
     while(!user_command.compare("#"))
     {
+        std::unique_lock<mutex> locker_fd_set(fd_set_muxtex,std::defer_lock);
+        locker_fd_set.lock();
         read_fds = master;
+
         if (select(fdmax+1,&read_fds, nullptr, nullptr, &tv) <0)
         {
-            perror("select");
+            perror("=> Select");
             exit(EXIT_FAILURE);
         }
 
-        unsigned long number_file_decriptors = client_file_dercriptors.size();
+        locker_fd_set.unlock();
 
-        for (unsigned long i = 0; i< number_file_decriptors; i++)
+        for (unsigned long i = 0; i< input_fds.size(); i++)
         {
-            if(FD_ISSET(client_file_dercriptors[i], &read_fds))
+            if(FD_ISSET(input_fds[i], &read_fds))
             {
-                if( client_file_dercriptors[i] == stdin)    // Get user input from terminal.
+                if( input_fds[i] == stdin)    // Get user input from terminal.
                 {
                     string inputStr;
                     getline(cin, inputStr);
@@ -188,9 +186,8 @@ int main()
                     user_command.set(inputStr);
                     locker.unlock();
                     cond.notify_all();
-                    printf("=>Walk up sender. \n");
                 }
-                else if( client_file_dercriptors[i] == server_fd)   // Get new connection from new client.
+                else if( input_fds[i] == server_fd)   // Get new connection from new client.
                 {
                     if((socket_for_client = accept(server_fd, &client_addr, &size_client_address))<0)
                     {
@@ -199,7 +196,7 @@ int main()
                     else
                     {
                         FD_SET(socket_for_client, &master);
-                        client_file_dercriptors.push_back(socket_for_client);
+                        input_fds.push_back(socket_for_client);
 
                         if (socket_for_client > fdmax)
                         {
@@ -217,29 +214,37 @@ int main()
                 else    // Get data from an client.
                 {
                     memset(&buffer,0,bufsize);
-                    if ((status=recv(client_file_dercriptors[i],buffer, bufsize,0)) <=0 )
+                    if ((status=recv(input_fds[i], buffer, bufsize,0)) <=0)
                     {
-                        if (status == 0)
+                        if ((status == -1) && ((errno == EAGAIN)|| (errno == EWOULDBLOCK)))
                         {
-                            printf("=>Connect client has been close, soket: %d\n",client_file_dercriptors[i]);
+                            perror("=> Message is not gotten complete !!");
                         }
                         else
                         {
-                            perror("=> Recv error!!\n");
-                        };
+                            if (status == 0)
+                            {
+                                printf("=> Connect client has been close, soket: %d\n",input_fds[i]);
+                            }
+                            else
+                            {
+                                printf("=> Error socket.");
+                            };
 
-                        if ((errno == EAGAIN)|| (errno == EWOULDBLOCK)){
-                            printf("Error on receving message");
-                        }else{
-                            FD_CLR(client_file_dercriptors[i], &master);
-                            client_socket_list.remove(client_file_dercriptors[i]);    // delete client information.
-                            close(client_file_dercriptors[i]);
-                            client_file_dercriptors.erase(client_file_dercriptors.begin()+static_cast<long>(i));                            
-                        }
+                            locker_fd_set.lock();
+
+                            FD_CLR(input_fds[i], &master);
+                            client_socket_list.remove(input_fds[i]);    // delete client information.
+                            close(input_fds[i]);
+                            input_fds.erase(input_fds.begin()+static_cast<long>(i));
+
+                            locker_fd_set.unlock();
+                        };
                     }
                     else
                     {
-                        cout << "Messaga from client, socket " << client_file_dercriptors[i] << ":" << buffer << endl;
+                        cout << "Messaga from client, socket " << input_fds[i] << ":" << buffer << endl;
+                        process_on_buffer_recv(buffer,client_socket_list, input_fds[i], user_command);
                     };
                 };
             };
