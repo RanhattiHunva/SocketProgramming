@@ -33,13 +33,6 @@ void send_TCP(user_command& user_command, client_list& client_socket_list, fd_se
     tv.tv_sec = 1;
     tv.tv_usec = 0;
 
-    /* To send massage to a client. The user's input must be format as:
-     *              <massege>/<number soket file decriptor >
-     * Example: to send client connected with server on socket which have file decriptor 4 massage: "abcd"
-     * the user's input: abcd/4
-     *
-     */
-
     while(1)
     {
         std::unique_lock<std::mutex> locker(user_command_muxtex);
@@ -157,8 +150,9 @@ void send_TCP(user_command& user_command, client_list& client_socket_list, fd_se
 
 void process_on_buffer_recv(const char* buffer, client_list& client_socket_list, int input_fd, user_command& user_command){
     std::string bufstr = buffer;
-    std::string message;
     std::vector<std::string> container;
+    std::string message;
+
     if (bufstr.compare("#")){
         splits_string(bufstr, container);
         if(container.size() == 2){
@@ -187,3 +181,7 @@ void process_on_buffer_recv(const char* buffer, client_list& client_socket_list,
         };
     };
 };
+
+int check_raw_data(){
+
+}

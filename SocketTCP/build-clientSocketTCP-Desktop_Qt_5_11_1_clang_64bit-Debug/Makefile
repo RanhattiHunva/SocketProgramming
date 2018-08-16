@@ -35,7 +35,7 @@ MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
 DISTNAME      = clientSocketTCP1.0.0
-DISTDIR = /Users/cpu11806/Documents/MyFirstProjectVng/QtFile/SocketTCP/build-clientSocketTCP-Desktop_Qt_5_11_1_clang_64bit-Debug/.tmp/clientSocketTCP1.0.0
+DISTDIR = /Users/cpu11806/Documents/LearningSocket/Qt\ file/SocketTCP/build-clientSocketTCP-Desktop_Qt_5_11_1_clang_64bit-Debug/.tmp/clientSocketTCP1.0.0
 LINK          = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++
 LFLAGS        = -stdlib=libc++ -headerpad_max_install_names $(EXPORT_ARCH_ARGS) -Wl,-syslibroot,/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk -mmacosx-version-min=10.11 -Wl,-rpath,@executable_path/Frameworks -Wl,-rpath,/Users/cpu11806/Qt/5.11.1/clang_64/lib
 LIBS          = $(SUBLIBS) -F/Users/cpu11806/Qt/5.11.1/clang_64/lib -framework QtCore -framework DiskArbitration -framework IOKit 
@@ -50,8 +50,12 @@ OBJECTS_DIR   = ./
 
 ####### Files
 
-SOURCES       = ../clientSocketTCP/main.cpp 
-OBJECTS       = main.o
+SOURCES       = ../clientSocketTCP/main.cpp \
+		../clientSocketTCP/usercommand.cpp \
+		../clientSocketTCP/iosocket.cpp 
+OBJECTS       = main.o \
+		usercommand.o \
+		iosocket.o
 DIST          = /Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/spec_pre.prf \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/qdevice.pri \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/device_config.prf \
@@ -189,6 +193,7 @@ DIST          = /Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/spec_pre.prf
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/qt_config.prf \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/macx-clang/qmake.conf \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/spec_post.prf \
+		../clientSocketTCP/.qmake.stash \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/exclusive_builds.prf \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/mac/sdk.prf \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/toolchain.prf \
@@ -214,7 +219,10 @@ DIST          = /Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/spec_pre.prf
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/exceptions.prf \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/yacc.prf \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/lex.prf \
-		../clientSocketTCP/clientSocketTCP.pro  ../clientSocketTCP/main.cpp
+		../clientSocketTCP/clientSocketTCP.pro ../clientSocketTCP/usercommand.h \
+		../clientSocketTCP/iosocket.h ../clientSocketTCP/main.cpp \
+		../clientSocketTCP/usercommand.cpp \
+		../clientSocketTCP/iosocket.cpp
 QMAKE_TARGET  = clientSocketTCP
 DESTDIR       = 
 TARGET        = clientSocketTCP
@@ -368,6 +376,7 @@ Makefile: ../clientSocketTCP/clientSocketTCP.pro /Users/cpu11806/Qt/5.11.1/clang
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/qt_config.prf \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/macx-clang/qmake.conf \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/spec_post.prf \
+		.qmake.stash \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/exclusive_builds.prf \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/mac/sdk.prf \
 		/Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/toolchain.prf \
@@ -533,6 +542,7 @@ Makefile: ../clientSocketTCP/clientSocketTCP.pro /Users/cpu11806/Qt/5.11.1/clang
 /Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/qt_config.prf:
 /Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/macx-clang/qmake.conf:
 /Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/spec_post.prf:
+.qmake.stash:
 /Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/exclusive_builds.prf:
 /Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/mac/sdk.prf:
 /Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/toolchain.prf:
@@ -575,7 +585,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /Users/cpu11806/Qt/5.11.1/clang_64/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../clientSocketTCP/main.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents ../clientSocketTCP/usercommand.h ../clientSocketTCP/iosocket.h $(DISTDIR)/
+	$(COPY_FILE) --parents ../clientSocketTCP/main.cpp ../clientSocketTCP/usercommand.cpp ../clientSocketTCP/iosocket.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -585,6 +596,7 @@ clean: compiler_clean
 
 distclean: clean 
 	-$(DEL_FILE) $(TARGET) 
+	-$(DEL_FILE) .qmake.stash
 	-$(DEL_FILE) Makefile
 
 
@@ -624,8 +636,16 @@ compiler_clean: compiler_moc_predefs_clean
 
 ####### Compile
 
-main.o: ../clientSocketTCP/main.cpp 
+main.o: ../clientSocketTCP/main.cpp ../clientSocketTCP/usercommand.h \
+		../clientSocketTCP/iosocket.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o ../clientSocketTCP/main.cpp
+
+usercommand.o: ../clientSocketTCP/usercommand.cpp ../clientSocketTCP/usercommand.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o usercommand.o ../clientSocketTCP/usercommand.cpp
+
+iosocket.o: ../clientSocketTCP/iosocket.cpp ../clientSocketTCP/iosocket.h \
+		../clientSocketTCP/usercommand.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o iosocket.o ../clientSocketTCP/iosocket.cpp
 
 ####### Install
 

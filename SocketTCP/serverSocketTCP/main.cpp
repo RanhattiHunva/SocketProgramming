@@ -18,6 +18,7 @@
 #include "clientmanager.h"
 #include "iosocket.h"
 #include "usercommand.h"
+//#include "tcphelper.h"
 
 using namespace std;
 std::mutex user_command_muxtex;
@@ -103,7 +104,6 @@ int main()
     {
         printf("=> Bind success!!\n");
     };
-    freeaddrinfo(servinfor);
 
     /*------------------------------------------------------------------------------------------------------------*/
     // Server_fd start to listen the upcomming client.
@@ -118,7 +118,7 @@ int main()
     };
 
     /*------------------------------------------------------------------------------------------------------------*/
-    // Connect and communiactio with client.
+    // Connect and communiaction with client.
     int socket_for_client;              // Variable to save client socket data.
     struct sockaddr client_addr;
     unsigned int size_client_address = sizeof(client_addr);
@@ -251,6 +251,7 @@ int main()
         };
     };
     /*------------------------------------------------------------------------------------------------------------*/
+    freeaddrinfo(servinfor);
     close(server_fd);
     printf("Closed the server socket!! \n");
 }
